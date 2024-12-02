@@ -19,7 +19,7 @@
     "clear-jest": "jest --clearCache",
     "test-watch": "jest --watchman",
     "test-coverage": "jest --coverage",
-    "build": "rm -rf ./dist && tsc --project ./tsconfig.json && tsc-alias -p ./tsconfig.json",
+    "build": "rm -rf ./dist && tsc --project ./tsconfig.json && tsc-alias -p ./tsconfig.json && node dist/experiments.js",
     "build:light": "tsc --project ./tsconfig.json && tsc-alias -p ./tsconfig.json",
     "buidl": "npm run build",
     "ci": "npm i && npm run test && npm run build",

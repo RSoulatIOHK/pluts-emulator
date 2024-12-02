@@ -39,11 +39,15 @@ emulator.printUtxos(emulator.getUtxos())
 
 
 /**
- * Create a list of random UTxOs with dynamically calculated ADA values based on transaction size.
-*/
+ * Create a list of random UTxOs with dynamically calculated ADA values based on transaction size
+ * @param numUtxos number of random utxos to create
+ * @param targetAmount lovelaces which has to be populated in the address
+ * @param debugLevel to further check if the tx is a valid tx falling within the limits
+ * @returns utxos list
+ */
 function createRandomInitialUtxos(
     numUtxos: number, 
-    maxTxSizeBytes: number = 16384,
+    targetAmount: bigint = 100000000n,
     debugLevel: number = 1
 ): IUTxO[] {
 
@@ -52,12 +56,12 @@ function createRandomInitialUtxos(
     for (let i = 0; i < numUtxos; i++) {
         const utxoHash = generateRandomTxHash(i); // Unique hash per UTxO
         const address = generateRandomBech32Address();
-        const value = 100000000n; // 100 ADA (example value)
 
-        const utxoInit: IUTxO = createInitialUTxO(value, address, utxoHash);
+        const utxoInit: IUTxO = createInitialUTxO(targetAmount, address, utxoHash);
 
         const txSize = BigInt(new UTxO(utxoInit).toCbor().toBuffer().length);
 
+        const maxTxSizeBytes = emulator.getTxMaxSize();
         if (txSize <= BigInt(maxTxSizeBytes)) {
             utxos.push(utxoInit);
             if (debugLevel > 1) {
