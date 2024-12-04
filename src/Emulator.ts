@@ -121,6 +121,8 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
         while (height > 0) {
 
             this.blockHeight += 1;
+            console.log(`Block ${this.blockHeight}`);
+            
             this.slot += height * (this.genesisInfos.slotLengthMs / 1000);
             this.time += height * this.genesisInfos.slotLengthMs;
 

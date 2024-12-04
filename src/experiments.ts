@@ -1,7 +1,8 @@
 import { Emulator } from "./Emulator"
-import { Credential, defaultProtocolParameters, Tx, IUTxO, UTxO, Value, IValueAdaEntry, Address, AddressStr } from "@harmoniclabs/cardano-ledger-ts"
+import { defaultProtocolParameters, Tx, IUTxO, UTxO, Value, IValueAdaEntry, Address, AddressStr } from "@harmoniclabs/cardano-ledger-ts"
 import { defaultMainnetGenesisInfos, TxBuilder } from "@harmoniclabs/plu-ts-offchain"
 import { getRandomValues } from "crypto"
+import { generateRandomBech32Address } from "./utils/helper"
 
 const utxosInit: IUTxO[] = createRandomInitialUtxos(2)
 
@@ -94,17 +95,6 @@ function createInitialUTxO(numAda: bigint, address: Address | AddressStr, id: st
     });
 }
 
-/**
- * Generate a random Bech32 address.
- */
-function generateRandomBech32Address(): AddressStr {
-    const hash28i = getRandomValues(new Uint8Array(28))
-    const testnetAddr = new Address(
-        "testnet",
-        Credential.keyHash(hash28i)
-    )
-    return testnetAddr.toString()
-}
 
 
 /**
