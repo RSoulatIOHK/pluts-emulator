@@ -156,7 +156,7 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
                 }
             }
 
-            console.log(`Advanced to block number ${this.blockHeight} by height ${height} (slot ${this.slot}). Time: ${new Date(this.time).toISOString()}`);
+            console.log(`Advanced to block number ${this.blockHeight} (slot ${this.slot}). Time: ${new Date(this.time).toISOString()}`);
         
             height -= 1;
         }
