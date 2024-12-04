@@ -135,6 +135,7 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
                 if (txSize && ((currentBlockUsed + txSize) <= this.protocolParameters.maxBlockBodySize)) {
                     
                     const tx = this.mempool.dequeue()!;
+                    const txHash = tx.hash.toString();
                     
                     for (let i = 0; i < tx.body.inputs.length; i++){
                         this.removeUtxo(tx.body.inputs[i])
@@ -143,7 +144,7 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
                         this.pushUtxo(new UTxO({
                             resolved: tx.body.outputs[i],
                             utxoRef: new TxOutRef({
-                                id: tx.hash.toString(), // to be verified
+                                id: txHash,
                                 index: i
                             })
                         }))
