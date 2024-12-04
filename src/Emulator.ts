@@ -115,7 +115,7 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
 
     awaitBlock (height : number = 1) : void {
         if (height <= 0) {
-            console.warn("Invalid block number. Must be greater than zero.");
+            console.warn("Invalid call to awaitBlock. Argument height must be greater than zero.");
         }
         
         while (height > 0) {
