@@ -130,7 +130,7 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
                 let txSize = this.getTxSize(this.mempool.peek())
                 
                 // check if tx size can fit in the block
-                if (txSize && ((currentBlockUsed + txSize) < this.protocolParameters.maxBlockBodySize)) {
+                if (txSize && ((currentBlockUsed + txSize) <= this.protocolParameters.maxBlockBodySize)) {
                     
                     const tx = this.mempool.dequeue()!;
                     
