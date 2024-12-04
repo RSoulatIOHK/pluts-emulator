@@ -120,7 +120,7 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
         
         while (height > 0) {
 
-            this.blockHeight += height;
+            this.blockHeight += 1;
             this.slot += height * (this.genesisInfos.slotLengthMs / 1000);
             this.time += height * this.genesisInfos.slotLengthMs;
 
