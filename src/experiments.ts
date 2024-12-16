@@ -28,7 +28,7 @@ let tx = txBuilder.buildSync({
 const submittedTx = emulator.submitTx(tx)
 
 console.log(submittedTx)
-
+console.log("UTxO Ref ID:", utxo.utxoRef.id.toString());
 emulator.printMempool()
 
 emulator.awaitBlock(1)
@@ -62,22 +62,22 @@ function createRandomInitialUtxos(
 
         const txSize = BigInt(new UTxO(utxoInit).toCbor().toBuffer().length);
 
-        const maxTxSizeBytes = emulator.getTxMaxSize();
-        if (txSize <= BigInt(maxTxSizeBytes)) {
+        // const maxTxSizeBytes = emulator.getTxMaxSize();
+        // if (txSize <= BigInt(maxTxSizeBytes)) {
             utxos.push(utxoInit);
-            if (debugLevel > 1) {
-                console.log(`UTxO ${utxoHash} added with size ${txSize} bytes.`);
-            }
-        } else {
-            if (debugLevel > 0) {
-                console.warn(`UTxO ${utxoHash} skipped due to size (${txSize} bytes) exceeding the limit (${maxTxSizeBytes} bytes).`);
-            }
-        }
+        //     if (debugLevel > 1) {
+        //         console.log(`UTxO ${utxoHash} added with size ${txSize} bytes.`);
+        //     }
+        // } else {
+        //     if (debugLevel > 0) {
+        //         console.warn(`UTxO ${utxoHash} skipped due to size (${txSize} bytes) exceeding the limit (${maxTxSizeBytes} bytes).`);
+        //     }
+        // }
     }
 
-    if (debugLevel > 0) {
-        console.log(`${utxos.length}/${numUtxos} UTxOs successfully created within size limits.`);
-    }
+    // if (debugLevel > 0) {
+    //     console.log(`${utxos.length}/${numUtxos} UTxOs successfully created within size limits.`);
+    // }
 
     return utxos;
 }
