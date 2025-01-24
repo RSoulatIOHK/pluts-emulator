@@ -1,8 +1,8 @@
-import { Emulator } from "./Emulator"
 import { defaultProtocolParameters, Tx, IUTxO, UTxO, Value, IValueAdaEntry, Address, AddressStr } from "@harmoniclabs/cardano-ledger-ts"
 import { defaultMainnetGenesisInfos, TxBuilder } from "@harmoniclabs/plu-ts-offchain"
 import { getRandomValues } from "crypto"
 import { generateRandomBech32Address } from "./utils/helper"
+import { Emulator } from "./Emulator"
 
 const utxosInit: IUTxO[] = createRandomInitialUtxos(2)
 
@@ -36,7 +36,7 @@ emulator.awaitBlock(1)
 console.log("This mempool should be emptied")
 emulator.printMempool()
 console.log("End of mempool to check")
-emulator.printUtxos(emulator.getUtxos())
+// emulator.printUtxos(emulator.getUtxos())
 
 
 /**
@@ -60,23 +60,23 @@ function createRandomInitialUtxos(
 
         const utxoInit: IUTxO = createInitialUTxO(targetAmount, address, utxoHash);
 
-        const txSize = BigInt(new UTxO(utxoInit).toCbor().toBuffer().length);
+        // const txSize = BigInt(new UTxO(utxoInit).toCbor().toBuffer().length);
 
         // const maxTxSizeBytes = emulator.getTxMaxSize();
         // if (txSize <= BigInt(maxTxSizeBytes)) {
             utxos.push(utxoInit);
         //     if (debugLevel > 1) {
-        //         console.log(`UTxO ${utxoHash} added with size ${txSize} bytes.`);
+        //         console.log(UTxO ${utxoHash} added with size ${txSize} bytes.);
         //     }
         // } else {
         //     if (debugLevel > 0) {
-        //         console.warn(`UTxO ${utxoHash} skipped due to size (${txSize} bytes) exceeding the limit (${maxTxSizeBytes} bytes).`);
+        //         console.warn(UTxO ${utxoHash} skipped due to size (${txSize} bytes) exceeding the limit (${maxTxSizeBytes} bytes).);
         //     }
         // }
     }
 
     // if (debugLevel > 0) {
-    //     console.log(`${utxos.length}/${numUtxos} UTxOs successfully created within size limits.`);
+    //     console.log(${utxos.length}/${numUtxos} UTxOs successfully created within size limits.);
     // }
 
     return utxos;
@@ -108,3 +108,9 @@ function generateRandomTxHash(index: number): string {
     randomHash[0] = index; // Ensure uniqueness by incorporating the index
     return Buffer.from(randomHash).toString("hex");
 }
+
+export const experimentFunctions = {
+    createRandomInitialUtxos,
+    createInitialUTxO,
+    generateRandomTxHash
+};

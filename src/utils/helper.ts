@@ -12,4 +12,3 @@ export function generateRandomBech32Address(): AddressStr {
     )
     return testnetAddr.toString()
 }
-

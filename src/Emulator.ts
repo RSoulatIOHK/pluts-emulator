@@ -1,35 +1,7 @@
-import { Address, AddressStr, CanBeTxOutRef, TxOutRef, defaultProtocolParameters, forceTxOutRefStr, Hash32, isProtocolParameters, IUTxO, ProtocolParameters, StakeAddressBech32, Tx, TxOutRefStr, UTxO } from "@harmoniclabs/cardano-ledger-ts"
+import { AddressStr, CanBeTxOutRef, TxOutRef, defaultProtocolParameters, forceTxOutRefStr, isProtocolParameters, IUTxO, ProtocolParameters, StakeAddressBech32, Tx, TxOutRefStr, UTxO } from "@harmoniclabs/cardano-ledger-ts"
 import { StakeAddressInfos } from "./types/StakeAddressInfos";
-import { CanBeData,  CanResolveToUTxO, defaultMainnetGenesisInfos, GenesisInfos, IGetGenesisInfos, IGetProtocolParameters, IProvider, IResolveDatumHashes, IResolveUTxOs, isGenesisInfos, ISubmitTx, normalizedGenesisInfos, NormalizedGenesisInfos, TxBuilder, TxBuilderRunner } from "@harmoniclabs/plu-ts-offchain"
-import { debug } from "console";
-
-class Queue<T> {
-    private items: T[] = [];
-
-    enqueue(item: T): void {
-        this.items.push(item);
-    }
-
-    dequeue(): T | undefined {
-        return this.items.shift();
-    }
-
-    peek(): T | undefined {
-        return this.items[0];
-    }
-
-    isEmpty(): boolean {
-        return this.items.length === 0;
-    }
-
-    size(): number {
-        return this.items.length;
-    }
-
-    asArray(): T[] {
-        return this.items;
-    }
-}
+import { CanResolveToUTxO, defaultMainnetGenesisInfos, GenesisInfos, IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, isGenesisInfos, ISubmitTx, normalizedGenesisInfos, NormalizedGenesisInfos, TxBuilder } from "@harmoniclabs/plu-ts-offchain"
+import { Queue } from "./queue";
 
 export class Emulator
 implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
@@ -80,10 +52,17 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
             this.pushUtxo( new UTxO( iutxo ) );
         }
     }
+
+    get thisMempool() {
+        return this.mempool
+    }
+
+
     getUtxos(): Map<TxOutRefStr, UTxO>
     {
         return new Map( this.utxos );
     }
+    
     private pushUtxo( utxo: UTxO ): void
     {
         const ref = utxo.utxoRef.toString();
@@ -132,11 +111,11 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
                 let txSize = this.getTxSize(this.mempool.peek())
                 
                 // check if tx size can fit in the block
-                if (txSize && ((currentBlockUsed + txSize) <= this.protocolParameters.maxBlockBodySize)) {
-                    
+                if (txSize && ((currentBlockUsed + txSize) <= 200)) { //this.protocolParameters.maxBlockBodySize)) {
+                    console.log(currentBlockUsed, txSize, this.protocolParameters.maxBlockBodySize)
                     const tx = this.mempool.dequeue()!;
                     const txHash = tx.hash.toString();
-                    
+
                     for (let i = 0; i < tx.body.inputs.length; i++){
                         this.removeUtxo(tx.body.inputs[i])
                     }
@@ -149,12 +128,13 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
                             })
                         }))
                     }
-
+                    console.log('Dequeued from mempool: ', txHash)
                     currentBlockUsed += txSize;
 
                     txSize = this.getTxSize(this.mempool.peek())
 
                 } else {
+                    console.warn("Transaction too large to fit in block. Skipping transaction.");
                     break;
                 }
             }
@@ -264,6 +244,7 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
         }
         console.log("}");
     }
+
     /**
      * Print all the UTXOs
      */
