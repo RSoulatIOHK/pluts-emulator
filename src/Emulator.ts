@@ -111,8 +111,7 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
                 let txSize = this.getTxSize(this.mempool.peek())
                 
                 // check if tx size can fit in the block
-                if (txSize && ((currentBlockUsed + txSize) <= 200)) { //this.protocolParameters.maxBlockBodySize)) {
-                    console.log(currentBlockUsed, txSize, this.protocolParameters.maxBlockBodySize)
+                if (txSize && ((currentBlockUsed + txSize) <= this.protocolParameters.maxBlockBodySize)) { //200 
                     const tx = this.mempool.dequeue()!;
                     const txHash = tx.hash.toString();
 
