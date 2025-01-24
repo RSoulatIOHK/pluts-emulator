@@ -57,7 +57,7 @@ describe("Emulator Tests", () => {
         });
 
         // Mock the `getTxSize` method to return a size greater than the block limit
-        jest.spyOn(emulator, "getTxSize").mockReturnValue(300);
+        jest.spyOn(emulator, "getTxSize").mockReturnValue(90000);
 
         // Submit the large transaction to the emulator's mempool
         emulator.submitTx(tx);

@@ -54,9 +54,12 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
     }
 
     get thisMempool() {
-        return this.mempool
+        return this.mempool;
     }
 
+    get maxBlockBodySize() {
+        return this.protocolParameters.maxBlockBodySize;
+    }
 
     getUtxos(): Map<TxOutRefStr, UTxO>
     {
@@ -111,7 +114,7 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
                 let txSize = this.getTxSize(this.mempool.peek())
                 
                 // check if tx size can fit in the block
-                if (txSize && ((currentBlockUsed + txSize) <= this.protocolParameters.maxBlockBodySize)) { //200 
+                if (txSize && ((currentBlockUsed + txSize) <= this.maxBlockBodySize)) { //200 
                     const tx = this.mempool.dequeue()!;
                     const txHash = tx.hash.toString();
 
