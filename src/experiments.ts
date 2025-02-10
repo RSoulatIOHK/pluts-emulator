@@ -27,15 +27,15 @@ let tx = txBuilder.buildSync({
 
 const submittedTx = emulator.submitTx(tx)
 
-console.log(submittedTx)
-console.log("UTxO Ref ID:", utxo.utxoRef.id.toString());
-emulator.printMempool()
+// console.log(submittedTx)
+// console.log("UTxO Ref ID:", utxo.utxoRef.id.toString());
+// emulator.printMempool()
 
 emulator.awaitBlock(1)
 
-console.log("This mempool should be emptied")
-emulator.printMempool()
-console.log("End of mempool to check")
+// console.log("This mempool should be emptied")
+// emulator.printMempool()
+// console.log("End of mempool to check")
 // emulator.printUtxos(emulator.getUtxos())
 
 

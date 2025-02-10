@@ -103,7 +103,7 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
         while (height > 0) {
 
             this.blockHeight += 1;
-            console.log(`Block ${this.blockHeight}`);
+            // console.log(`Block ${this.blockHeight}`);
             
             this.slot += height * (this.genesisInfos.slotLengthMs / 1000);
             this.time += height * this.genesisInfos.slotLengthMs;
@@ -130,7 +130,7 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
                             })
                         }))
                     }
-                    console.log('Dequeued from mempool: ', txHash)
+                    // console.log('Dequeued from mempool: ', txHash)
                     currentBlockUsed += txSize;
 
                     txSize = this.getTxSize(this.mempool.peek())
@@ -141,7 +141,7 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
                 }
             }
 
-            console.log(`Advanced to block number ${this.blockHeight} (slot ${this.slot}). Time: ${new Date(this.time).toISOString()}`);
+            // console.log(`Advanced to block number ${this.blockHeight} (slot ${this.slot}). Time: ${new Date(this.time).toISOString()}`);
         
             height -= 1;
         }
