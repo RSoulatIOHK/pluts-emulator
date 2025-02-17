@@ -261,7 +261,6 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
     */
     submitTx( txCBOR: string | Tx ): Promise<string>
     {
-        // TODO add some tx validation
         const tx = txCBOR instanceof Tx ? txCBOR : Tx.fromCbor( txCBOR );
         if (this.isTxValid(tx)) {
             this.mempool.enqueue( tx );
@@ -274,9 +273,46 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
         return Promise.resolve( tx.hash.toString() );
     }
     
-    private isTxValid(tx: Tx) : boolean {
-        // Check if the transaction is valid
-        return true
+    private isTxValid(tx: Tx): boolean {
+
+        // Check if the transaction has at least one input and one output
+        if (tx.body.inputs.length === 0) {
+            console.log("Invalid transaction: no inputs.");
+            return false;
+        }
+        if (tx.body.outputs.length === 0) {
+            console.log("Invalid transaction: no outputs.");
+            return false;
+        }
+
+        // Check if all inputs are unspent
+        for (const input of tx.body.inputs) {
+            if (!this.utxos.has(forceTxOutRefStr(input))) {
+                console.log(`Invalid transaction: input ${input.toString()} is already spent.`);
+                return false;
+            }
+        }
+
+        // Check if the transaction size is within the maximum allowed size
+        const txSize = this.getTxSize(tx);
+        if (txSize > this.getTxMaxSize()) {
+            console.log(`Invalid transaction: size ${txSize} exceeds maximum allowed size ${this.getTxMaxSize()}.`);
+            return false;
+        }
+
+        // Check if the transaction fee is sufficient
+        const totalInputValue = tx.body.inputs.reduce((sum, input) => {
+            const utxo = this.utxos.get(forceTxOutRefStr(input));
+            return sum + (utxo ? utxo.resolved.value.lovelaces : BigInt(0));
+        }, BigInt(0));
+        const totalOutputValue = tx.body.outputs.reduce((sum, output) => sum + output.value.lovelaces, BigInt(0));
+        const fee = totalInputValue - totalOutputValue;
+        if (fee < Number(this.protocolParameters.txFeeFixed) + Number(this.protocolParameters.txFeePerByte) * txSize) {
+            console.log("Invalid transaction: insufficient fee.");
+            return false;
+        }
+
+        return true;
     }
 
     getTxSize(tx: Tx | undefined) {
