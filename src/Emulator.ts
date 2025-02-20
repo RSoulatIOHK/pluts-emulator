@@ -1,4 +1,4 @@
-import { AddressStr, CanBeTxOutRef, TxOutRef, defaultProtocolParameters, forceTxOutRefStr, isProtocolParameters, IUTxO, ProtocolParameters, StakeAddressBech32, Tx, TxOutRefStr, UTxO } from "@harmoniclabs/cardano-ledger-ts"
+import { AddressStr, CanBeTxOutRef, TxOutRef, defaultProtocolParameters, forceTxOutRefStr, isProtocolParameters, IUTxO, ProtocolParameters, StakeAddressBech32, Tx, TxOutRefStr, UTxO, Value } from "@harmoniclabs/cardano-ledger-ts"
 import { StakeAddressInfos } from "./types/StakeAddressInfos";
 import { CanResolveToUTxO, defaultMainnetGenesisInfos, GenesisInfos, IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, isGenesisInfos, ISubmitTx, normalizedGenesisInfos, NormalizedGenesisInfos, TxBuilder } from "@harmoniclabs/plu-ts-offchain"
 import { Queue } from "./queue";
@@ -303,11 +303,11 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
         // Check if the transaction fee is sufficient
         const totalInputValue = tx.body.inputs.reduce((sum, input) => {
             const utxo = this.utxos.get(forceTxOutRefStr(input));
-            return sum + (utxo ? utxo.resolved.value.lovelaces : BigInt(0));
-        }, BigInt(0));
-        const totalOutputValue = tx.body.outputs.reduce((sum, output) => sum + output.value.lovelaces, BigInt(0));
-        const fee = totalInputValue - totalOutputValue;
-        if (fee < Number(this.protocolParameters.txFeeFixed) + Number(this.protocolParameters.txFeePerByte) * txSize) {
+            return Value.add(sum, utxo ? utxo.resolved.value : Value.zero);
+        }, tx.body.mint ? tx.body.mint : Value.zero);
+        const totalOutputValue = tx.body.outputs.reduce((sum, output) => Value.add(sum, output.value), Value.zero);
+        const fee = Value.sub(totalInputValue, totalOutputValue).lovelaces;
+        if (fee < this.txBuilder.calcMinFee(tx)) {
             console.log("Invalid transaction: insufficient fee.");
             return false;
         }
