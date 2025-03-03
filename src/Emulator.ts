@@ -1,4 +1,4 @@
-import { AddressStr, CanBeTxOutRef, TxOutRef, defaultProtocolParameters, forceTxOutRefStr, isProtocolParameters, IUTxO, ProtocolParameters, StakeAddressBech32, Tx, TxOutRefStr, UTxO } from "@harmoniclabs/cardano-ledger-ts"
+import { AddressStr, CanBeTxOutRef, TxOutRef, defaultProtocolParameters, forceTxOutRefStr, isProtocolParameters, IUTxO, ProtocolParameters, StakeAddressBech32, Tx, TxOutRefStr, UTxO, Value } from "@harmoniclabs/cardano-ledger-ts"
 import { StakeAddressInfos } from "./types/StakeAddressInfos";
 import { CanResolveToUTxO, defaultMainnetGenesisInfos, GenesisInfos, IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, isGenesisInfos, ISubmitTx, normalizedGenesisInfos, NormalizedGenesisInfos, TxBuilder } from "@harmoniclabs/plu-ts-offchain"
 import { Queue } from "./queue";
@@ -261,7 +261,6 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
     */
     submitTx( txCBOR: string | Tx ): Promise<string>
     {
-        // TODO add some tx validation
         const tx = txCBOR instanceof Tx ? txCBOR : Tx.fromCbor( txCBOR );
         if (this.isTxValid(tx)) {
             this.mempool.enqueue( tx );
@@ -274,9 +273,46 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
         return Promise.resolve( tx.hash.toString() );
     }
     
-    private isTxValid(tx: Tx) : boolean {
-        // Check if the transaction is valid
-        return true
+    private isTxValid(tx: Tx): boolean {
+
+        // Check if the transaction has at least one input and one output
+        if (tx.body.inputs.length === 0) {
+            console.log("Invalid transaction: no inputs.");
+            return false;
+        }
+        if (tx.body.outputs.length === 0) {
+            console.log("Invalid transaction: no outputs.");
+            return false;
+        }
+
+        // Check if all inputs are unspent
+        for (const input of tx.body.inputs) {
+            if (!this.utxos.has(forceTxOutRefStr(input))) {
+                console.log(`Invalid transaction: input ${input.toString()} is already spent.`);
+                return false;
+            }
+        }
+
+        // Check if the transaction size is within the maximum allowed size
+        const txSize = this.getTxSize(tx);
+        if (txSize > this.getTxMaxSize()) {
+            console.log(`Invalid transaction: size ${txSize} exceeds maximum allowed size ${this.getTxMaxSize()}.`);
+            return false;
+        }
+
+        // Check if the transaction fee is sufficient
+        const totalInputValue = tx.body.inputs.reduce((sum, input) => {
+            const utxo = this.utxos.get(forceTxOutRefStr(input));
+            return Value.add(sum, utxo ? utxo.resolved.value : Value.zero);
+        }, tx.body.mint ? tx.body.mint : Value.zero);
+        const totalOutputValue = tx.body.outputs.reduce((sum, output) => Value.add(sum, output.value), Value.zero);
+        const fee = Value.sub(totalInputValue, totalOutputValue).lovelaces;
+        if (fee < this.txBuilder.calcMinFee(tx)) {
+            console.log("Invalid transaction: insufficient fee.");
+            return false;
+        }
+
+        return true;
     }
 
     getTxSize(tx: Tx | undefined) {
