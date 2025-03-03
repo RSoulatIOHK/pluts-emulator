@@ -1,7 +1,7 @@
 {
   "name": "@harmoniclabs/pluts-emulator",
   "version": "0.0.1-dev0",
-  "description": "An embedded DSL for Cardano smart contracts creation coupled with a library for Cardano transactions, all in Typescript",
+  "description": "Cardano emulator for offchian testing",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "browser": {
