@@ -1,5 +1,5 @@
 import { defaultProtocolParameters, Tx, IUTxO, UTxO, Value, IValueAdaEntry, Address, AddressStr } from "@harmoniclabs/cardano-ledger-ts"
-import { defaultMainnetGenesisInfos, TxBuilder } from "@harmoniclabs/plu-ts-offchain"
+import { defaultMainnetGenesisInfos, TxBuilder } from "@harmoniclabs/buildooor"
 import { getRandomValues } from "crypto"
 import { generateRandomBech32Address } from "./utils/helper"
 import { Emulator } from "./Emulator"

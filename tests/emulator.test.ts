@@ -1,5 +1,5 @@
 import { Emulator } from "../src/Emulator";
-import { CanResolveToUTxO, TxBuilder, defaultMainnetGenesisInfos, normalizedGenesisInfos } from "@harmoniclabs/plu-ts-offchain";
+import { CanResolveToUTxO, TxBuilder, defaultMainnetGenesisInfos, normalizedGenesisInfos } from "@harmoniclabs/buildooor";
 import { defaultProtocolParameters, IUTxO, Tx, TxOutRefStr, UTxO } from "@harmoniclabs/cardano-ledger-ts";
 import { experimentFunctions } from "../src/experiments";
 
