@@ -1,4 +1,4 @@
-import { PoolKeyHash } from "@harmoniclabs/cardano-ledger-ts";
+import { PoolKeyHash } from "@harmoniclabs/plu-ts";
 
 export interface StakeAddressInfos {
     registered: boolean;

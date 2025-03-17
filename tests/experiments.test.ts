@@ -1,4 +1,4 @@
-import { AddressStr } from "@harmoniclabs/cardano-ledger-ts";
+import { AddressStr } from "@harmoniclabs/plu-ts";
 
 import { experimentFunctions } from "../src/experiments";
 

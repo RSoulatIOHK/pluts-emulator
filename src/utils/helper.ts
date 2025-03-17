@@ -1,4 +1,4 @@
-import { Address, AddressStr, Credential } from "@harmoniclabs/cardano-ledger-ts"
+import { Address, AddressStr, Credential } from "@harmoniclabs/plu-ts"
 import { getRandomValues } from "crypto"
 
 /**

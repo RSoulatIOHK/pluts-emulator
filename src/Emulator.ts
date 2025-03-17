@@ -1,4 +1,4 @@
-import { AddressStr, CanBeTxOutRef, TxOutRef, defaultProtocolParameters, forceTxOutRefStr, isProtocolParameters, IUTxO, ProtocolParameters, StakeAddressBech32, Tx, TxOutRefStr, UTxO, Value } from "@harmoniclabs/cardano-ledger-ts"
+import { AddressStr, CanBeTxOutRef, TxOutRef, defaultProtocolParameters, forceTxOutRefStr, isProtocolParameters, IUTxO, ProtocolParameters, StakeAddressBech32, Tx, TxOutRefStr, UTxO, Value } from "@harmoniclabs/plu-ts"
 import { StakeAddressInfos } from "./types/StakeAddressInfos";
 import { CanResolveToUTxO, defaultMainnetGenesisInfos, GenesisInfos, IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, isGenesisInfos, ISubmitTx, normalizedGenesisInfos, NormalizedGenesisInfos, TxBuilder } from "@harmoniclabs/buildooor"
 import { Queue } from "./queue";
