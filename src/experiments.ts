@@ -1,5 +1,5 @@
-import { defaultProtocolParameters, Tx, IUTxO, UTxO, Value, IValueAdaEntry, Address, AddressStr } from "@harmoniclabs/cardano-ledger-ts"
-import { defaultMainnetGenesisInfos, TxBuilder } from "@harmoniclabs/plu-ts-offchain"
+import { defaultProtocolParameters, Tx, IUTxO, UTxO, Value, IValueAdaEntry, Address, AddressStr } from "@harmoniclabs/plu-ts"
+import { defaultMainnetGenesisInfos, TxBuilder } from "@harmoniclabs/buildooor"
 import { getRandomValues } from "crypto"
 import { generateRandomBech32Address } from "./utils/helper"
 import { Emulator } from "./Emulator"
@@ -48,7 +48,7 @@ emulator.awaitBlock(1)
  */
 function createRandomInitialUtxos(
     numUtxos: number, 
-    targetAmount: bigint = 100000000n,
+    targetAmount: bigint = 150000000n,
     debugLevel: number = 1
 ): IUTxO[] {
 
