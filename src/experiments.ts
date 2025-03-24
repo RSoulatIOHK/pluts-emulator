@@ -48,7 +48,7 @@ emulator.awaitBlock(1)
  */
 function createRandomInitialUtxos(
     numUtxos: number, 
-    targetAmount: bigint = 100000000n,
+    targetAmount: bigint = 150000000n,
     debugLevel: number = 1
 ): IUTxO[] {
 
