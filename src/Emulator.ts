@@ -357,7 +357,6 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
             return false;
         }
 
-        
         // Check if the transaction fee is sufficient
         const fee = tx.body.fee;
         // calMinFee guesses that we have atleast one signer for the tx
@@ -370,7 +369,7 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
             return false;
         }
 
-        //  TBD validity ranges
+        // TBD validity ranges
 
         return true;
     }
