@@ -362,7 +362,10 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
         const fee = tx.body.fee;
         // calMinFee guesses that we have atleast one signer for the tx
         // calLinearFee calculates with the signer; so here we should be using this
-        if (fee < this.txBuilder.calcLinearFee(tx)) {
+        if(
+            typeof (this.txBuilder as any).calcLinearFee === "function"
+            && fee < (this.txBuilder as any).calcLinearFee(tx)
+        ) {
             console.log("Invalid transaction: insufficient fee.");
             return false;
         }
