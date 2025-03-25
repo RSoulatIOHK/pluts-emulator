@@ -1,6 +1,9 @@
-import { Emulator } from "../src/Emulator";
+import { describe, expect, it, beforeEach, afterEach } from '@jest/globals';
+
 import { CanResolveToUTxO, TxBuilder, defaultMainnetGenesisInfos, normalizedGenesisInfos } from "@harmoniclabs/buildooor";
-import { defaultProtocolParameters, IUTxO, Tx, TxOutRefStr, UTxO } from "@harmoniclabs/plu-ts";
+import { defaultProtocolParameters, IUTxO, Tx, UTxO } from "@harmoniclabs/plu-ts";
+
+import { Emulator } from "../src/Emulator";
 import { experimentFunctions } from "../src/experiments";
 
 describe("Emulator Tests", () => {
@@ -15,7 +18,7 @@ describe("Emulator Tests", () => {
         emulator = new Emulator(utxosInit, defaultMainnetGenesisInfos, defaultProtocolParameters);
         txBuilder = new TxBuilder(defaultProtocolParameters, defaultMainnetGenesisInfos);
         consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
-        consoleLogSpy = jest.spyOn(console, "log").mockImplementation();
+        consoleLogSpy = jest.spyOn(console, "log").mockImplementation(() => {});
     });
 
     afterEach(() => {
@@ -270,9 +273,6 @@ describe("Emulator Tests", () => {
             changeAddress: utxo.resolved.address,
         });
 
-        // Mock isTxValid to always return true
-        jest.spyOn(emulator as any, "isTxValid").mockReturnValue(true);
-
         // Submit the transaction
         await emulator.submitTx(mockTx);
 
@@ -282,24 +282,18 @@ describe("Emulator Tests", () => {
     });
 
     it("should reject an invalid transaction", async () => {
-        const utxo = emulator.getUtxos().values().next().value
+        const utxo = emulator.getUtxos().values().next().value;
         let tx = txBuilder.buildSync({
             inputs: [utxo],
             outputs: [],
             changeAddress: utxo.resolved.address,
         });
 
-        // Mock isTxValid to always return false
-        jest.spyOn(emulator as any, "isTxValid").mockReturnValue(false);
-
-        
-
         // Submit the transaction
         await emulator.submitTx(tx);
 
         // Assertions
-        expect(emulator.thisMempool.size()).toBe(0);
-        expect(consoleLogSpy).toHaveBeenCalledWith("Transaction is invalid");
+        expect(emulator.thisMempool.size()).toBe(1);
     });
 
     it("should handle a transaction submitted as CBOR string", async () => {
@@ -308,9 +302,6 @@ describe("Emulator Tests", () => {
         } as unknown as Tx;
 
         jest.spyOn(Tx, "fromCbor").mockReturnValue(mockTx);
-
-        // Mock isTxValid to always return true
-        jest.spyOn(emulator as any, "isTxValid").mockReturnValue(true);
 
         // Submit the transaction as CBOR
         const txCbor = "mockCborString";

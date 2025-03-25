@@ -322,6 +322,11 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
     }
 
     private async isTxValid(tx: Tx): Promise<boolean> {
+
+        if (!tx.body) {
+            console.log("Invalid transaction: no body.");
+            return false;
+        }
         
         // Resolve the source addresses from the inputs
         const allTxUtxos = await Promise.all(
@@ -339,6 +344,12 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
         }
         if (tx.body.outputs.length === 0) {
             console.log("Invalid transaction: no outputs.");
+            return false;
+        }
+
+        // Check if all inputs are unique
+        if (new Set(tx.body.inputs.map(forceTxOutRefStr)).size !== tx.body.inputs.length) {
+            console.log("Invalid transaction: inputs are not unique.");
             return false;
         }
 
