@@ -1,5 +1,6 @@
-// Import required modules
+import { describe, expect, it } from '@jest/globals';
 import { Address } from "@harmoniclabs/plu-ts";
+
 import { generateRandomBech32Address } from "../src/utils/helper"; // Adjust the path as needed
 
 describe("GenerateRandomBech32Address - E2E Test", () => {

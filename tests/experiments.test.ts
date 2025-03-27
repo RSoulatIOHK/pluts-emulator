@@ -1,3 +1,4 @@
+import { describe, expect, it } from '@jest/globals';
 import { AddressStr } from "@harmoniclabs/plu-ts";
 
 import { experimentFunctions } from "../src/experiments";
