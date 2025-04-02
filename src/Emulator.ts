@@ -10,6 +10,7 @@ import {
     StakeAddressBech32,
     Tx,
     Data,
+    defaultProtocolParameters,
     // StakeAddress,
     TxOutRefStr,
     UTxO,
@@ -75,14 +76,14 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
     constructor(
         initialUtxoSet: Iterable<IUTxO> = [],
         genesisInfos: GenesisInfos = defaultMainnetGenesisInfos,
-        protocolParameters: ProtocolParameters = cardanoMainnetProtocolParameters,
+        protocolParameters: ProtocolParameters = defaultProtocolParameters,
         debugLevel: number = 0,
     )
     {
         if( !isGenesisInfos( genesisInfos ) ) genesisInfos = defaultMainnetGenesisInfos;
         this.genesisInfos = normalizedGenesisInfos( genesisInfos );
 
-        if( !isProtocolParameters( protocolParameters ) ) protocolParameters = cardanoMainnetProtocolParameters;
+        if( !isProtocolParameters( protocolParameters ) ) protocolParameters = defaultProtocolParameters;
         this.protocolParameters = protocolParameters;
         this.txBuilder = new TxBuilder( this.protocolParameters, this.genesisInfos );
         
