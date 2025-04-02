@@ -4,40 +4,48 @@ import { getRandomValues } from "crypto"
 import { generateRandomBech32Address } from "./utils/helper"
 import { Emulator } from "./Emulator"
 
-const utxosInit: IUTxO[] = createRandomInitialUtxos(2)
+// Wrap the main logic in an async function
+async function main() {
+    const utxosInit: IUTxO[] = createRandomInitialUtxos(2)
 
-const emulator: Emulator = new Emulator(utxosInit, defaultMainnetGenesisInfos, defaultProtocolParameters);
+    const emulator: Emulator = new Emulator(utxosInit, defaultMainnetGenesisInfos, defaultProtocolParameters);
 
-const txBuilder = new TxBuilder (defaultProtocolParameters, defaultMainnetGenesisInfos)
+    emulator.setDebugLevel(1);
 
-// Get the first utxo
-const utxo = emulator.getUtxos().values().next().value
-if (utxo === undefined) {
-    console.log("No utxo found")
-    process.exit(1)
+    const txBuilder = new TxBuilder(defaultProtocolParameters, defaultMainnetGenesisInfos)
+
+    // Get the first utxo
+    const utxo = emulator.getUtxos().values().next().value
+    if (utxo === undefined) {
+        console.log("No utxo found")
+        process.exit(1)
+    }
+
+    let tx = txBuilder.buildSync({
+        inputs: [utxo],
+        outputs: [],
+        changeAddress: utxo.resolved.address,
+    });
+
+    // Submit transaction and wait for it to be added to mempool
+    const submittedTx = await emulator.submitTx(tx)
+    
+    // Print mempool after transaction submission
+    console.log(emulator.prettyPrintMempool());
+
+    emulator.awaitBlock(1)
+
+    // Print mempool after block creation
+    console.log(emulator.prettyPrintMempool());
+    // Print the ledger
+    console.log(emulator.prettyPrintLedgerState());
 }
-// emulator.printUtxo(utxo)
-let tx = txBuilder.buildSync({
-    inputs: [utxo],
-    outputs: [],
-    changeAddress: utxo.resolved.address,
+
+// Call the main function and handle any potential errors
+main().catch(error => {
+    console.error("An error occurred:", error);
+    process.exit(1);
 });
-
-// Sign the transaction
-
-const submittedTx = emulator.submitTx(tx)
-
-// console.log(submittedTx)
-// console.log("UTxO Ref ID:", utxo.utxoRef.id.toString());
-// emulator.printMempool()
-
-emulator.awaitBlock(1)
-
-// console.log("This mempool should be emptied")
-// emulator.printMempool()
-// console.log("End of mempool to check")
-// emulator.printUtxos(emulator.getUtxos())
-
 
 /**
  * Create a list of random UTxOs with dynamically calculated ADA values based on transaction size
@@ -60,24 +68,8 @@ function createRandomInitialUtxos(
 
         const utxoInit: IUTxO = createInitialUTxO(targetAmount, address, utxoHash);
 
-        // const txSize = BigInt(new UTxO(utxoInit).toCbor().toBuffer().length);
-
-        // const maxTxSizeBytes = emulator.getTxMaxSize();
-        // if (txSize <= BigInt(maxTxSizeBytes)) {
-            utxos.push(utxoInit);
-        //     if (debugLevel > 1) {
-        //         console.log(UTxO ${utxoHash} added with size ${txSize} bytes.);
-        //     }
-        // } else {
-        //     if (debugLevel > 0) {
-        //         console.warn(UTxO ${utxoHash} skipped due to size (${txSize} bytes) exceeding the limit (${maxTxSizeBytes} bytes).);
-        //     }
-        // }
+        utxos.push(utxoInit);
     }
-
-    // if (debugLevel > 0) {
-    //     console.log(${utxos.length}/${numUtxos} UTxOs successfully created within size limits.);
-    // }
 
     return utxos;
 }
@@ -94,8 +86,6 @@ function createInitialUTxO(numAda: bigint, address: Address | AddressStr, id: st
         },
     });
 }
-
-
 
 /**
  * Generate a unique random transaction hash.
