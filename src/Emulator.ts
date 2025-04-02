@@ -3,7 +3,6 @@ import {
     AddressStr,
     CanBeTxOutRef,
     TxOutRef,
-    defaultProtocolParameters,
     forceTxOutRefStr,
     isProtocolParameters,
     IUTxO,
@@ -18,6 +17,9 @@ import {
     // Value
 } from "@harmoniclabs/plu-ts"
 
+import {
+    cardanoMainnetProtocolParameters
+} from "./ProtocolParametersMainnet";
 
 import {
     StakeAddressInfos
@@ -73,16 +75,15 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
     constructor(
         initialUtxoSet: Iterable<IUTxO> = [],
         genesisInfos: GenesisInfos = defaultMainnetGenesisInfos,
-        protocolParameters: ProtocolParameters = defaultProtocolParameters,
+        protocolParameters: ProtocolParameters = cardanoMainnetProtocolParameters,
         debugLevel: number = 0,
     )
     {
         if( !isGenesisInfos( genesisInfos ) ) genesisInfos = defaultMainnetGenesisInfos;
         this.genesisInfos = normalizedGenesisInfos( genesisInfos );
 
-        if( !isProtocolParameters( protocolParameters ) ) protocolParameters = defaultProtocolParameters;
+        if( !isProtocolParameters( protocolParameters ) ) protocolParameters = cardanoMainnetProtocolParameters;
         this.protocolParameters = protocolParameters;
-        
         this.txBuilder = new TxBuilder( this.protocolParameters, this.genesisInfos );
         
         // Initialize the time and slot based on the genesis information
@@ -394,11 +395,12 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
         // Get protocol parameters for fee calculation
         let a = this.protocolParameters.txFeePerByte;
         let b = this.protocolParameters.txFeeFixed;
-        if (typeof a !== "bigint") {
+        this.debug(1, `txFeePerByte: ${a} of type ${typeof(a)} txFeeFixed: ${b} of type ${typeof(b)}`);
+        if (typeof a == undefined) {
             this.debug(0, "Invalid txFeePerByte. Defaulting to 0.");
             a = BigInt(0);
         }
-        if (typeof b !== "bigint") {
+        if (typeof b == undefined) {
             this.debug(0, "Invalid txFeeFixed. Defaulting to 0.");
             b = BigInt(0);
         }
@@ -406,7 +408,7 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
         const txSize = tx.toCbor().toString().length / 2; // Convert hex string to bytes
         
         // Calculate minimum fee: a * txSize + b
-        const minFee = (a * BigInt(txSize)) + b;
+        const minFee = (BigInt(a) * BigInt(txSize)) + BigInt(b);
         
         return minFee;
     }
