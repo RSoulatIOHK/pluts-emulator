@@ -729,11 +729,11 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
         const lowerBound = tx.body.validityIntervalStart;
         const upperBound = tx.body.ttl;
 
-        if (lowerBound !== undefined && this.fromSlotToPosix(this.slot) < lowerBound) {
+        if (lowerBound !== undefined && (this.slot) < lowerBound) {
             this.debug(0, `Transaction ${txHash} is not valid yet. Current slot: ${this.slot}, lower bound: ${lowerBound}`);
             return false;
         }
-        if (upperBound !== undefined && this.fromSlotToPosix(this.slot) > upperBound) {
+        if (upperBound !== undefined && (this.slot) > upperBound) {
             this.debug(0, `Transaction ${txHash} has expired. Current slot: ${this.slot}, upper bound: ${upperBound}`);
             return false;
         }
