@@ -11,16 +11,13 @@ import {
     Tx,
     Data,
     defaultProtocolParameters,
-    // StakeAddress,
+    ITxRunnerProvider,
     TxOutRefStr,
     UTxO,
+    Hash32,
     // TxWithdrawals,
     // Value
 } from "@harmoniclabs/plu-ts"
-
-import {
-    cardanoMainnetProtocolParameters
-} from "./ProtocolParametersMainnet";
 
 import {
     StakeAddressInfos
@@ -29,6 +26,7 @@ import {
 import {
     CanResolveToUTxO,
     defaultMainnetGenesisInfos,
+    CanBeData,
     GenesisInfos,
     IGetGenesisInfos,
     IGetProtocolParameters,
@@ -42,8 +40,28 @@ import {
 
 import {Queue} from "./queue"
 
-export class Emulator
-implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
+// Define the interface outside the class
+export interface EmulatorBlockInfos {
+    time: number;
+    hight: number; // This is an hommage to @harmoniclabs/blockfrost-pluts
+    // hash: string;
+    slot: number;
+    // epoch: number;
+    // epoch_slot: number;
+    slot_leader : "emulator";
+    size : number;
+    tx_count : number;
+    // output : bigint | null | undefined;
+    fees : bigint;
+    // block_vrf : string;
+    // op_cert: string | null | undefined,
+    // op_cert_counter: `${bigint}` | null | undefined,
+    // previous_block: string | null | undefined,
+    // next_block: string | null | undefined,
+    // confirmations: number
+  }
+
+export class Emulator implements ITxRunnerProvider, IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
 {
     private readonly utxos: Map<TxOutRefStr,UTxO>;
     private readonly stakeAddresses: Map<StakeAddressBech32, StakeAddressInfos>;
@@ -51,19 +69,21 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
 
     private debugLevel: number;
     private readonly mempool: Queue<Tx>;
-
+    
     private time: number;
     private slot: number;
     private blockHeight: number;
-
+    
     private readonly genesisInfos: NormalizedGenesisInfos;
     private readonly protocolParameters: ProtocolParameters;
 
+    // TO CHECK: Is that how to handle the block information?
+    private lastBlock : EmulatorBlockInfos;
+
     // TO CHECK: Is that how to handle the datum table?
-    private readonly datumTable: Map<number, Data>;
+    private readonly datumTable: Map<string, Data> = new Map();
 
     readonly txBuilder: TxBuilder;
-
 
     /**
      * Create a new Emulator
@@ -100,7 +120,15 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
         this.mempool = new Queue<Tx>();
         this.debugLevel = debugLevel;
 
-        
+        this.lastBlock = {
+            time: this.time,
+            hight: this.blockHeight,
+            slot: this.slot,
+            slot_leader: "emulator",
+            size: 0,
+            tx_count: 0,
+            fees: BigInt(0)
+        };
 
         for( const iutxo of initialUtxoSet )
         {
@@ -365,6 +393,11 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
         return this.blockHeight;
     }
 
+    /** Get the current block information */
+    getChainTip(): EmulatorBlockInfos {
+        return this.lastBlock;
+    }
+
     /** Returns the set of UTxOs */
     getUtxos(): Map<TxOutRefStr, UTxO>
     {
@@ -467,20 +500,99 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
         );
     }
 
-    /** Resolve the utxos by addresses 
-      * @param addresses Addresses to resolve
-      * @returns UTxOs associated with the addresses
-      * @returns undefined if no UTxOs are found
-      * Note: Modified and not compiled yet
-    */
-    resolveUtxosbyAddresses( addresses: (Address | AddressStr)[] ): UTxO[] | undefined
-    { 
-        const utxos = Array.from(this.getUtxos().values()).filter( utxo => utxo.resolved.address.toString() === addresses.toString());
+    /**
+     * Resolves UTxOs for a specific address
+     * @param address Address to find UTxOs for
+     * @returns Array of UTxOs belonging to the address, or undefined if none found
+     */
+    resolveUtxosbyAddress(address: Address | AddressStr): UTxO[] | undefined {
+        // Ensure we have a proper AddressStr by using toString() from the Address object
+        // This maintains the type safety
+        const addressStr = address instanceof Address 
+            ? address.toString() 
+            : address;
         
-        console.log('All UTXOs :')
-        Array.from(this.getUtxos().values()).forEach(utxo => console.log(utxo.resolved.value.lovelaces, utxo.resolved.address.toString()))
+        this.debug(2, `Resolving UTxOs for address: ${addressStr}`);
         
-        return utxos.length ? utxos : undefined;
+        // Check if the address exists in our address map
+        if (!this.addresses.has(addressStr)) {
+            this.debug(1, `No UTxOs found for address: ${addressStr}`);
+            return undefined;
+        }
+        
+        // Get the set of UTxO references for this address
+        const utxoRefs = this.addresses.get(addressStr)!;
+        this.debug(2, `Found ${utxoRefs.size} UTxO references for address: ${addressStr}`);
+        
+        // Resolve each UTxO reference to its full UTxO object
+        const utxos: UTxO[] = [];
+        for (const ref of utxoRefs) {
+            const utxo = this.utxos.get(ref);
+            if (utxo) {
+                utxos.push(utxo.clone());
+            }
+        }
+        
+        // Log the resolved UTxOs
+        this.debug(2, `Resolved ${utxos.length} UTxOs for address ${addressStr}:`);
+        
+        // Log individual UTxO details - this will only execute if debug level is sufficient
+        utxos.forEach(utxo => {
+            this.debug(2, `  UTxO: ${utxo.utxoRef.toString()}, Value: ${utxo.resolved.value.lovelaces} lovelaces`);
+        });
+        
+        return utxos.length > 0 ? utxos : undefined;
+    }
+
+    /**
+     * Retrieves UTxOs for a specific address (Blockfrost API compatible method)
+     * @param address Address to find UTxOs for
+     * @returns Promise with array of UTxOs belonging to the address
+     */
+    async addressUtxos(address: AddressStr | Address): Promise<UTxO[]> {
+        // Just delegate to our main implementation
+        const utxos = this.resolveUtxosbyAddress(address);
+        
+        // Return empty array instead of undefined to match Blockfrost behavior
+        return Promise.resolve(utxos || []);
+    }
+
+    /**
+     * Resolves datum hashes to their corresponding datum values
+     * @param hashes Array of Hash32 objects representing datum hashes to resolve
+     * @returns Promise with an array of resolved datums with their hashes
+     */
+    async resolveDatumHashes(hashes: Hash32[]): Promise<{hash: string; datum: CanBeData;}[]> {
+            this.debug(2, `Resolving ${hashes.length} datum hashes`);
+            
+            // Map to store resolved datums
+            const resolvedDatums: {
+                hash: string;
+                datum: CanBeData;
+            }[] = [];
+            
+            // Iterate through each hash and try to find it in the datum table
+            for (const hash of hashes) {
+                const hashStr = hash instanceof Hash32 ? hash.toString() : String(hash);
+                
+                this.debug(2, `Looking up datum hash: ${hashStr}`);
+                
+                // Try to get the datum from the datum table
+                const datum = this.datumTable.get(hashStr);
+                
+                if (datum) {
+                    this.debug(2, `Found datum for hash ${hashStr}`);
+                    resolvedDatums.push({
+                        hash: hashStr,
+                        datum: datum
+                    });
+                } else {
+                    this.debug(1, `Datum hash ${hashStr} not found in datum table`);
+                }
+            }
+        
+        this.debug(2, `Resolved ${resolvedDatums.length} out of ${hashes.length} datum hashes`);
+        return Promise.resolve(resolvedDatums);
     }
 
     /**
@@ -529,6 +641,7 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
         // Process transaction in the mempool until the block size limit is reached
         let currentBlockSize = 0;
         let txsProcessed = 0;
+        let totalFees = BigInt(0);
 
         while (this.mempool.length > 0) {
             // Peek at the next transaction in the mempool without removing it 
@@ -557,6 +670,9 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
                 // Process the transaction 
                 this.processTx(tx);
 
+                // Calculate the fee
+                totalFees += tx.body.fee;
+
                 // Update the counters
                 currentBlockSize += txSize;
                 txsProcessed ++;
@@ -567,6 +683,18 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
                 this.debug(0, `Failed to process transaction ${tx.hash.toString()}: ${error}`);
             }
         }
+        
+        // Update the last block information
+        this.lastBlock = {
+            time: this.time,
+            hight: this.blockHeight,
+            slot: this.slot,
+            slot_leader : "emulator",
+            size : currentBlockSize,
+            tx_count : txsProcessed,
+            fees : totalFees,
+        };
+
         this.debug(1, `Block processing complete. ${txsProcessed} transactions processed for ${currentBlockSize} bytes.`);
     }
 
@@ -578,6 +706,15 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
         const txHash = tx.hash.toString();
         
         this.debug(1, `Processing transaction ${txHash}`);
+        const isValidTx = this.validateTx(tx);
+
+        if (!isValidTx) {
+            this.debug(0, `Transaction ${txHash} failed validation on-chain. Skipping.`);
+            // TODO: Add collateral slashing
+            // this.debug(0, `Slashing collateral for transaction ${txHash}`);
+            // this.slashCollateral(tx);
+            return;
+        }
 
         // Remove the inputs from the ledger
         for (const input of tx.body.inputs) {
@@ -622,7 +759,7 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
         // Store any new datum in the datum table
         if (tx.witnesses.datums) {
             for (const [datumHash, datum] of tx.witnesses.datums.entries()) {
-                this.datumTable.set(datumHash, datum);
+                this.datumTable.set(datumHash.toString(), datum);
             }
         }
 
@@ -653,7 +790,7 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
     /**
      * Validate a transaction against the current state
      * @param tx Transaction to validate
-
+     * TOBEREPLACED: By the TxBuilder validation
      */
     private async validateTx(tx: Tx): Promise<boolean> {
         const txHash = tx.hash.toString();
@@ -741,8 +878,9 @@ implements IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
         this.debug(2, `Transaction ${txHash} is valid in the current slot ${this.slot} at time: (${this.fromSlotToPosix(this.slot)}), validity start: ${lowerBound}, end: ${upperBound}`);
         return true;
 
-        // 8. Execute scripts
-        // Note: Not implemented yet. TODO
+        
         
     }
+
+
 }
