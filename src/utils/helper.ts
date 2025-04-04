@@ -36,7 +36,7 @@ export function initializeEmulator(addresses: Map<Address, bigint> = new Map()):
       initialUtxos,
       defaultMainnetGenesisInfos, 
       defaultProtocolParameters,
-      1 // Debug level
+      0 // Debug level
     );
   }
   
