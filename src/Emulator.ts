@@ -601,11 +601,11 @@ export class Emulator implements ITxRunnerProvider, IGetGenesisInfos, IGetProtoc
      */
     awaitBlock(blocks: number = 1): void {
         if (blocks <= 0) {
-            console.warn("Invalid call to awaitBlock. Argument blocks must be greater than zero.");
+            this.debug(0,"Invalid call to awaitBlock. Argument blocks must be greater than zero.");
         }
 
         this.blockHeight += blocks;
-        this.slot += blocks * (this.genesisInfos.slotLengthMs / 1000);
+        this.slot += blocks * (this.genesisInfos.slotLengthMs * 20 / 1000); // Not sure where to compute the 20 from
         this.time += blocks * this.genesisInfos.slotLengthMs;
 
         this.debug(1, `Advancing to block number ${this.blockHeight} (slot ${this.slot}). Time: ${new Date(this.time).toISOString()}`);
@@ -624,6 +624,39 @@ export class Emulator implements ITxRunnerProvider, IGetGenesisInfos, IGetProtoc
             this.debug(2, `Fast forwarding remaning ${blocks - blockProcessed} blocks as mempool is empty`);
         }
     }
+
+    /** Advance to a future slot
+     * @param slots Number of slots to advance
+     * @returns void
+     * */
+    awaitSlot(slots: number = 1): void {
+        if (slots <= 0) {
+            this.debug(0,"Invalid call to awaitSlot. Argument slots must be greater than zero.");
+        }
+
+        this.slot += slots;
+        this.time += slots * this.genesisInfos.slotLengthMs;
+        const currentHeight = this.blockHeight;
+        this.blockHeight = Math.floor(this.slot / (this.genesisInfos.slotLengthMs * 20 / 1000)); // Not sure where to compute the 20 from
+
+        if (this.blockHeight > currentHeight) {
+            this.debug(1, `Advancing to block number ${this.blockHeight} (slot ${this.slot}). Time: ${new Date(this.time).toISOString()}`);
+            let blocksToBeProcessed = this.blockHeight - currentHeight;
+            this.debug(2, `Processing ${blocksToBeProcessed} blocks`);
+            while (blocksToBeProcessed > 0 && this.mempool.length > 0) {
+                this.updateLedger();
+                blocksToBeProcessed --;
+            }
+
+            if (blocksToBeProcessed > 0 && this.mempool.length === 0) {
+                this.debug(2, `Fast forwarding remaining ${blocksToBeProcessed} blocks as mempool is empty`);
+            }
+        }
+        else {
+            this.debug(2, `Slot ${this.slot} is in the same block as ${this.blockHeight}. No blocks to be processed`);
+        }
+    }
+
     
     /** Update the ledger by processing the mempool, respecting the block size limit */
     private updateLedger(): void {
