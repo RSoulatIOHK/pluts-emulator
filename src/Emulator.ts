@@ -602,6 +602,7 @@ export class Emulator implements ITxRunnerProvider, IGetGenesisInfos, IGetProtoc
     awaitBlock(blocks: number = 1): void {
         if (blocks <= 0) {
             this.debug(0,"Invalid call to awaitBlock. Argument blocks must be greater than zero.");
+            return;
         }
 
         this.blockHeight += blocks;
@@ -632,6 +633,7 @@ export class Emulator implements ITxRunnerProvider, IGetGenesisInfos, IGetProtoc
     awaitSlot(slots: number = 1): void {
         if (slots <= 0) {
             this.debug(0,"Invalid call to awaitSlot. Argument slots must be greater than zero.");
+            return;
         }
 
         this.slot += slots;
