@@ -775,7 +775,7 @@ export class Emulator implements ITxRunnerProvider, IGetGenesisInfos, IGetProtoc
         });
 
         // Log the updated UTxO set
-        console.log("Updated UTxO Set:", this.utxos);
+        this.debug(1, `Updated UTxO Set: ${this.utxos}`);
 
         // Process withdrawals
         // Note: We're not really putting rewards in the accounts so far so need to fix that. TODO
