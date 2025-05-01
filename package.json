@@ -1,6 +1,6 @@
 {
   "name": "@harmoniclabs/pluts-emulator",
-  "version": "0.0.1-dev2",
+  "version": "0.0.1-dev3",
   "description": "Cardano emulator for offchian testing",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -19,7 +19,7 @@
     "clear-jest": "jest --clearCache",
     "test-watch": "jest --watchman",
     "test-coverage": "jest --coverage",
-    "build": "rm -rf ./dist && tsc --project ./tsconfig.json && tsc-alias -p ./tsconfig.json && node dist/experiments.js",
+    "build": "rm -rf ./dist && tsc --project ./tsconfig.json && tsc-alias -p ./tsconfig.json",
     "build:light": "tsc --project ./tsconfig.json && tsc-alias -p ./tsconfig.json",
     "buidl": "npm run build",
     "ci": "npm i && npm run test && npm run build",
