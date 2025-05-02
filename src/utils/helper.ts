@@ -1,7 +1,5 @@
 import { Address, AddressStr, Credential, IUTxO, Value } from "@harmoniclabs/plu-ts"
-import { defaultMainnetGenesisInfos, defaultProtocolParameters } from "@harmoniclabs/buildooor"
 import { getRandomValues } from "crypto"
-import { Emulator } from "../Emulator"
 
 /**
  * Generate a random Bech32 address.
@@ -14,36 +12,11 @@ export function generateRandomBech32Address(): AddressStr {
     )
     return testnetAddr.toString()
 }
-
-/**
- * Initialize an emulator with UTxOs for testing
- * @param addresses Map of addresses and their initial balances in lovelaces
- * @returns Configured Emulator instance
- */
-export function initializeEmulator(addresses: Map<Address, bigint> = new Map()): Emulator {
-    const initialUtxos: IUTxO[] = [];
-    let index = 0;
-    
-    // Create UTxOs for each address with specified amount
-    for (const [address, lovelaces] of addresses.entries()) {
-      const txHash = generateRandomTxHash(index);
-      const utxo = createInitialUTxO(lovelaces, address, txHash);
-      initialUtxos.push(utxo);
-      index++;
-    }
-    
-    return new Emulator(
-      initialUtxos,
-      defaultMainnetGenesisInfos, 
-      defaultProtocolParameters,
-      0 // Debug level
-    );
-  }
   
   /**
    * Generate a random transaction hash for testing
    */
-  function generateRandomTxHash(salt: number = 0): string {
+export function generateRandomTxHash(salt: number = 0): string {
     // Create a predictable but unique hash based on salt
     return Array.from(
       { length: 64 },
@@ -54,7 +27,7 @@ export function initializeEmulator(addresses: Map<Address, bigint> = new Map()):
   /**
    * Create an initial UTxO for the emulator
    */
-  function createInitialUTxO(lovelaces: bigint, address: Address, txHash: string): IUTxO {
+export function createInitialUTxO(lovelaces: bigint, address: Address, txHash: string): IUTxO {
     return {
       utxoRef: {
         id: txHash,

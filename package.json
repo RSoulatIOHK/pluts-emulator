@@ -1,6 +1,6 @@
 {
   "name": "@harmoniclabs/pluts-emulator",
-  "version": "0.0.1-dev3",
+  "version": "0.0.1-dev4",
   "description": "Cardano emulator for offchian testing",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -67,7 +67,7 @@
   },
   "homepage": "https://github.com/HarmonicLabs/plu-ts#readme",
   "dependencies": {
-    "@harmoniclabs/buildooor": "^0.1.8",
+    "@harmoniclabs/buildooor": "^0.1.9",
     "@harmoniclabs/obj-utils": "^1.0.0",
     "@harmoniclabs/plu-ts": "^0.9.0",
     "@harmoniclabs/uint8array-utils": "^1.0.3",
@@ -76,7 +76,7 @@
   "peerDependencies": {
     "@harmoniclabs/cardano-costmodels-ts": "^1.3.0",
     "@harmoniclabs/cbor": "^1.6.0",
-    "@harmoniclabs/plutus-data": "^1.2.4",
+    "@harmoniclabs/plutus-data": "^1.2.6",
     "@harmoniclabs/plutus-machine": "^2.1.0"
   },
   "devDependencies": {
