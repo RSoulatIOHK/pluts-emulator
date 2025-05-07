@@ -378,9 +378,9 @@ export class Emulator implements ITxRunnerProvider, IGetGenesisInfos, IGetProtoc
     }
 
     /** Returns the set of UTxOs */
-    getUtxos(): Map<TxOutRefStr, UTxO>
+    getUtxos(): UTxO[]
     {
-        return new Map( this.utxos );
+        return Array.from( this.utxos.values() );
     }
 
     /**
