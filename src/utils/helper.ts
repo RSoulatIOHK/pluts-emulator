@@ -1,7 +1,5 @@
-import { Address, AddressStr, Credential, IUTxO, UTxO, Value } from "@harmoniclabs/plu-ts"
-import { defaultMainnetGenesisInfos, defaultProtocolParameters } from "@harmoniclabs/buildooor"
+import { Address, AddressStr, Credential, IUTxO, Value } from "@harmoniclabs/plu-ts"
 import { getRandomValues } from "crypto"
-import { Emulator } from "../Emulator"
 
 /**
  * Generate a random Bech32 address.
@@ -14,64 +12,11 @@ export function generateRandomBech32Address(): AddressStr {
     )
     return testnetAddr.toString()
 }
-
-/**
- * Initialize an emulator with UTxOs for testing
- * @param addresses Map of addresses and their initial balances in lovelaces
- * @returns Configured Emulator instance
- */
-export function initializeEmulator(addresses: Map<Address, bigint> = new Map()): Emulator {
-    const initialUtxos: IUTxO[] = [];
-    let index = 0;
-    
-    // Create UTxOs for each address with specified amount
-    for (const [address, lovelaces] of addresses.entries()) {
-      const txHash = generateRandomTxHash(index);
-      const utxo = createInitialUTxO(lovelaces, address, txHash);
-      initialUtxos.push(utxo);
-      index++;
-    }
-    
-    return new Emulator(
-      initialUtxos,
-      defaultMainnetGenesisInfos, 
-      defaultProtocolParameters,
-      0 // Debug level
-    );
-  }
-
-  /**
- * Initialize an emulator when handling a single wallet address.
- * If the address already has a UTxO with 15 ADA, reuse it; otherwise, throw error expecting wallet to be populated manually.
- * @param utxos The UTxOs contained in the browser wallet to initialize the emulator with.
- * @returns Configured Emulator instances
- */
-export function initializeEmulatorWithWalletUtxOs(utxos: UTxO[]): Emulator {
-  const initialUtxos: IUTxO[] = [];
-
-  // Check if wallet already has a UTxO with 15 ADA
-  if (!utxos.length) 
-    throw new Error("Wallet doesn't have enough funds. Have you requested funds from the faucet?");
-  const utxo = utxos.find(u => u.resolved.value.lovelaces >= 15_000_000);
-  if (utxo === undefined)
-    throw new Error("Not enough ADA");
-
-
-  initialUtxos.push(utxo);
-
-  return new Emulator(
-    initialUtxos,
-    defaultMainnetGenesisInfos, 
-    defaultProtocolParameters,
-    0 // Debug level
-  );
-}
-
-
+  
   /**
    * Generate a random transaction hash for testing
    */
-  function generateRandomTxHash(salt: number = 0): string {
+export function generateRandomTxHash(salt: number = 0): string {
     // Create a predictable but unique hash based on salt
     return Array.from(
       { length: 64 },
@@ -82,7 +27,7 @@ export function initializeEmulatorWithWalletUtxOs(utxos: UTxO[]): Emulator {
   /**
    * Create an initial UTxO for the emulator
    */
-  function createInitialUTxO(lovelaces: bigint, address: Address, txHash: string): IUTxO {
+export function createInitialUTxO(lovelaces: bigint, address: Address, txHash: string): IUTxO {
     return {
       utxoRef: {
         id: txHash,

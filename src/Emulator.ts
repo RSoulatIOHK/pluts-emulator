@@ -14,14 +14,13 @@ import {
     ITxRunnerProvider,
     TxOutRefStr,
     UTxO,
-    Hash32,
-    // TxWithdrawals,
-    // Value
+    Hash32
 } from "@harmoniclabs/plu-ts"
 
 import {
     StakeAddressInfos
 } from "./types/StakeAddressInfos";
+import { EmulatorBlockInfos } from "./types/EmulatorBlockInfos";
 
 import {
     CanResolveToUTxO,
@@ -39,27 +38,7 @@ import {
 } from "@harmoniclabs/buildooor"
 
 import {Queue} from "./queue"
-
-// Define the interface outside the class
-export interface EmulatorBlockInfos {
-    time: number;
-    hight: number; // This is an hommage to @harmoniclabs/blockfrost-pluts
-    // hash: string;
-    slot: number;
-    // epoch: number;
-    // epoch_slot: number;
-    slot_leader : "emulator";
-    size : number;
-    tx_count : number;
-    // output : bigint | null | undefined;
-    fees : bigint;
-    // block_vrf : string;
-    // op_cert: string | null | undefined,
-    // op_cert_counter: `${bigint}` | null | undefined,
-    // previous_block: string | null | undefined,
-    // next_block: string | null | undefined,
-    // confirmations: number
-  }
+import { createInitialUTxO, generateRandomTxHash } from "./utils/helper";
 
 export class Emulator implements ITxRunnerProvider, IGetGenesisInfos, IGetProtocolParameters, IResolveUTxOs, ISubmitTx
 {
@@ -201,7 +180,7 @@ export class Emulator implements ITxRunnerProvider, IGetGenesisInfos, IGetProtoc
             for (const asset of assets) {
                 const policy = asset.policy.toString();
                 for (const token of asset.assets) {
-                    const tokenName = token.name.toString();
+                    const tokenName = Buffer.from(token.name).toString();
                     const quantity = token.quantity.toString();
                     output += `\t\tPolicy: ${policy} Token: ${tokenName} Quantity: ${quantity}\n`;
                 }
@@ -764,7 +743,7 @@ export class Emulator implements ITxRunnerProvider, IGetGenesisInfos, IGetProtoc
 
             // Create a UTxO from the output
             const utxo = new UTxO({
-                resolved: tx.body.outputs[index],
+                resolved: output,
                 utxoRef: new TxOutRef({
                     id: txHash,
                     index: index
@@ -815,7 +794,9 @@ export class Emulator implements ITxRunnerProvider, IGetGenesisInfos, IGetProtoc
         this.debug(1, `Transaction body: ${JSON.stringify(tx.body)}`);
 
         const isValidTx = await this.validateTx(tx);
-        if (isValidTx) {
+        const phase2ValidTx = await this.txBuilder.validatePhaseTwo(tx);
+        
+        if (isValidTx && phase2ValidTx) {
             // Add the transaction to the mempool
             this.mempool.enqueue(tx);
             this.debug(1, `Transaction ${tx.hash.toString()} is valid: Adding to mempool, length: ${this.mempool.length}.`);
@@ -914,10 +895,62 @@ export class Emulator implements ITxRunnerProvider, IGetGenesisInfos, IGetProtoc
 
         this.debug(2, `Transaction ${txHash} is valid in the current slot ${this.slot} at time: (${this.fromSlotToPosix(this.slot)}), validity start: ${lowerBound}, end: ${upperBound}`);
         return true;
-
-        
-        
     }
-
-
 }
+
+
+/**
+ * Initialize an emulator with UTxOs for testing
+ * @param addresses Map of addresses and their initial balances in lovelaces
+ * @returns Configured Emulator instance
+ */
+export function initializeEmulator(addresses: Map<Address, bigint> = new Map()): Emulator {
+    const initialUtxos: IUTxO[] = [];
+    let index = 0;
+    
+    // Create UTxOs for each address with specified amount
+    for (const [address, lovelaces] of addresses.entries()) {
+      const txHash = generateRandomTxHash(index);
+      const utxo = createInitialUTxO(lovelaces, address, txHash);
+      initialUtxos.push(utxo);
+      index++;
+    }
+    
+    const instance =  new Emulator(
+      initialUtxos,
+      defaultMainnetGenesisInfos, 
+      defaultProtocolParameters,
+      0 // Debug level
+    );
+
+    return instance;
+  }
+
+
+  /**
+ * Initialize an emulator when handling a single wallet address.
+ * If the address already has a UTxO with 15 ADA, reuse it; otherwise, throw error expecting wallet to be populated manually.
+ * @param utxos The UTxOs contained in the browser wallet to initialize the emulator with.
+ * @returns Configured Emulator instances
+ */
+  export function initializeEmulatorWithWalletUtxOs(utxos: UTxO[]): Emulator {
+    const initialUtxos: IUTxO[] = [];
+  
+    // Check if wallet already has a UTxO with 15 ADA
+    if (!utxos.length) 
+      throw new Error("Wallet doesn't have enough funds. Have you requested funds from the faucet?");
+    const utxo = utxos.find(u => u.resolved.value.lovelaces >= 15_000_000);
+    if (utxo === undefined)
+      throw new Error("Not enough ADA");
+  
+  
+    initialUtxos.push(utxo);
+  
+    return new Emulator(
+      initialUtxos,
+      defaultMainnetGenesisInfos, 
+      defaultProtocolParameters,
+      0 // Debug level
+    );
+  }
+  
