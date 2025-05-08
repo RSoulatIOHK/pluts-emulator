@@ -796,6 +796,7 @@ export class Emulator implements ITxRunnerProvider, IGetGenesisInfos, IGetProtoc
         const isValidTx = await this.validateTx(tx);
         const phase2ValidTx = await this.txBuilder.validatePhaseTwo(tx);
         
+        console.log("phase2 validation result: ", await this.txBuilder.validatePhaseTwoVerbose(tx));
         if (isValidTx && phase2ValidTx) {
             // Add the transaction to the mempool
             this.mempool.enqueue(tx);
