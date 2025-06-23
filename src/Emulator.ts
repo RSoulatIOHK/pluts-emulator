@@ -912,7 +912,7 @@ export class Emulator implements ITxRunnerProvider, IGetGenesisInfos, IGetProtoc
      * @returns 
      */
     private validateCollateral(tx: Tx): boolean {
-        const minCollateral = BigInt(5000000); // Minimum collateral of 5 Ada
+        const minCollateral = BigInt(this.protocolParameters.collateralPercentage || 0) * tx.body.fee / BigInt(100);
         const hasScriptInput = tx.body.inputs.some(input => {
             const utxo = this.utxos.get(input.utxoRef.toString());
             if (!utxo || !utxo.resolved.address || !utxo.resolved.address.paymentCreds) {
