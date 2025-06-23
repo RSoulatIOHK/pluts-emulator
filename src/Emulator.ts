@@ -921,8 +921,17 @@ export class Emulator implements ITxRunnerProvider, IGetGenesisInfos, IGetProtoc
             }
             return utxo && utxo.resolved.address.paymentCreds.type === CredentialType.Script; // Check if input is a script
         });
+
+        // TODO: Check on an example with refScript
+        const hasRefScriptInputs = tx.body.refInputs?.some(input => {
+            const utxo = this.utxos.get(input.utxoRef.toString());
+            if (!utxo || !utxo.resolved.address || !utxo.resolved.address.paymentCreds) {
+                throw new Error(`Invalid ref input: ${input.utxoRef.toString()}`);
+            }
+            return utxo && utxo.resolved.address.paymentCreds.type === CredentialType.Script; // Check if ref input is a script
+        })
     
-        if (hasScriptInput) {
+        if (hasScriptInput || hasRefScriptInputs) {
             const collateralInputs = tx.body.collateralInputs || [];
             collateralInputs.forEach(input => {
                 const utxo = this.utxos.get(input.utxoRef.toString());
