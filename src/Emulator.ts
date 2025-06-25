@@ -14,7 +14,8 @@ import {
     ITxRunnerProvider,
     TxOutRefStr,
     UTxO,
-    Hash32
+    Hash32,
+    Value
 } from "@harmoniclabs/plu-ts"
 
 import {
@@ -796,14 +797,18 @@ export class Emulator implements ITxRunnerProvider, IGetGenesisInfos, IGetProtoc
         const isValidTx = await this.validateTx(tx);
         if (isValidTx) {
             this.debug(1, `Transaction ${tx.hash.toString()} is passed phase-1 validation. Proceeding for phase-2.`);
-            const phase2ValidTx = await this.txBuilder.validatePhaseTwo(tx);
-            this.debug(1, `Phase2 validation result: ${await this.txBuilder.validatePhaseTwoVerbose(tx)} `);
+            // const phase2ValidTx = await this.txBuilder.validatePhaseTwo(tx);
+            // this.debug(1, `Phase2 validation result: ${await this.txBuilder.validatePhaseTwoVerbose(tx)} `);
+            const phase2ValidTx = false;
+            this.debug(2, `Phase-2 validation result: ${phase2ValidTx}`);
             if (phase2ValidTx) {
                 // Add the transaction to the mempool
                 this.mempool.enqueue(tx);
                 this.debug(1, `Transaction ${tx.hash.toString()} is valid: Adding to mempool, length: ${this.mempool.length}.`);
                 return Promise.resolve(tx.hash.toString());
             } else {
+                this.debug(0, `Transaction ${tx.hash.toString()} failed phase-2 validation. Slashing collateral.`);
+                this.slashCollateral(tx);
                 return Promise.reject(tx.hash.toString())
             }
         } else {
@@ -866,6 +871,57 @@ export class Emulator implements ITxRunnerProvider, IGetGenesisInfos, IGetProtoc
 
         this.debug(2, `Transaction ${txHash} is valid`);
         return true;
+    }
+
+    /**
+     * Slash collateral for a failed transaction
+     * @param tx The transaction that failed phase-2 validation
+     */
+    private slashCollateral(tx: Tx): void {
+        const collateralInputs = tx.body.collateralInputs || [];
+        const collateralPercentage = this.protocolParameters.collateralPercentage || 150; // Default to 150% if not defined
+
+        for (const input of collateralInputs) {
+            const utxoRef = forceTxOutRefStr(input);
+            const utxo = this.utxos.get(utxoRef);
+
+            if (!utxo) {
+                this.debug(0, `Collateral UTxO ${utxoRef} not found in the ledger.`);
+                continue;
+            }
+
+            const fee = tx.body.fee || BigInt(0);
+            const collateralToSlash = (fee * BigInt(collateralPercentage)) / BigInt(100);
+
+            if (utxo.resolved.value.lovelaces > collateralToSlash) {
+                // Return the remaining collateral to the change address
+                const remainingLovelaces = utxo.resolved.value.lovelaces - collateralToSlash;
+                const changeAddress = utxo.resolved.address;
+
+                const remainingUtxo = new UTxO({
+                    resolved: {
+                        address: changeAddress,
+                        value: new Value([
+                            { policy: "", assets: [{ name: "", quantity: remainingLovelaces }] }, // ADA entry
+                            ...utxo.resolved.value.map, // Ensure other tokens (native tokens, NFTs) are included
+                        ]),
+                        datum: utxo.resolved.datum,
+                        refScript: utxo.resolved.refScript,
+                    },
+                    utxoRef: new TxOutRef({
+                        id: tx.hash.toString(),
+                        index: 0, // Assuming index 0 for the new UTxO
+                    }),
+                });
+
+                this.addUtxoToLedger(remainingUtxo);
+                this.debug(1, `Returned remaining collateral to change address: ${changeAddress.toString()}`);
+            }
+
+            // Remove the slashed collateral UTxO from the ledger
+            this.removeUtxoFromLedger(utxoRef);
+            this.debug(1, `Slashed ${collateralToSlash} lovelaces from collateral UTxO ${utxoRef}`);
+        }
     }
 }
 
