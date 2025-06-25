@@ -794,14 +794,18 @@ export class Emulator implements ITxRunnerProvider, IGetGenesisInfos, IGetProtoc
         this.debug(1, `Transaction body: ${JSON.stringify(tx.body)}`);
 
         const isValidTx = await this.validateTx(tx);
-        const phase2ValidTx = await this.txBuilder.validatePhaseTwo(tx);
-        
-        console.log("phase2 validation result: ", await this.txBuilder.validatePhaseTwoVerbose(tx));
-        if (isValidTx && phase2ValidTx) {
-            // Add the transaction to the mempool
-            this.mempool.enqueue(tx);
-            this.debug(1, `Transaction ${tx.hash.toString()} is valid: Adding to mempool, length: ${this.mempool.length}.`);
-            return Promise.resolve(tx.hash.toString());
+        if (isValidTx) {
+            this.debug(1, `Transaction ${tx.hash.toString()} is passed phase-1 validation. Proceeding for phase-2.`);
+            const phase2ValidTx = await this.txBuilder.validatePhaseTwo(tx);
+            this.debug(1, `Phase2 validation result: ${await this.txBuilder.validatePhaseTwoVerbose(tx)} `);
+            if (phase2ValidTx) {
+                // Add the transaction to the mempool
+                this.mempool.enqueue(tx);
+                this.debug(1, `Transaction ${tx.hash.toString()} is valid: Adding to mempool, length: ${this.mempool.length}.`);
+                return Promise.resolve(tx.hash.toString());
+            } else {
+                return Promise.reject(tx.hash.toString())
+            }
         } else {
             return Promise.reject(tx.hash.toString())
         }    
