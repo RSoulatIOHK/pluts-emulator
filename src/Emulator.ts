@@ -798,7 +798,7 @@ export class Emulator implements ITxRunnerProvider, IGetGenesisInfos, IGetProtoc
 
         const isValidTx = await this.validateTx(tx);
         if (isValidTx) {
-            this.debug(1, `Transaction ${tx.hash.toString()} is passed phase-1 validation. Proceeding for phase-2.`);
+            this.debug(1, `Transaction ${tx.hash.toString()} has passed phase-1 validation. Proceeding for phase-2.`);
             // const phase2ValidTx = await this.txBuilder.validatePhaseTwo(tx);
             // this.debug(1, `Phase2 validation result: ${await this.txBuilder.validatePhaseTwoVerbose(tx)} `);
             const phase2ValidTx = false;
