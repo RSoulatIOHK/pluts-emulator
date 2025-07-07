@@ -799,10 +799,8 @@ export class Emulator implements ITxRunnerProvider, IGetGenesisInfos, IGetProtoc
         const isValidTx = await this.validateTx(tx);
         if (isValidTx) {
             this.debug(1, `Transaction ${tx.hash.toString()} has passed phase-1 validation. Proceeding for phase-2.`);
-            // const phase2ValidTx = await this.txBuilder.validatePhaseTwo(tx);
-            // this.debug(1, `Phase2 validation result: ${await this.txBuilder.validatePhaseTwoVerbose(tx)} `);
-            const phase2ValidTx = false;
-            this.debug(2, `Phase-2 validation result: ${phase2ValidTx}`);
+            const phase2ValidTx = await this.txBuilder.validatePhaseTwo(tx);
+            this.debug(1, `Phase2 validation result: ${await this.txBuilder.validatePhaseTwoVerbose(tx)} `);
             if (phase2ValidTx) {
                 // Add the transaction to the mempool
                 this.mempool.enqueue(tx);
@@ -810,12 +808,12 @@ export class Emulator implements ITxRunnerProvider, IGetGenesisInfos, IGetProtoc
                 return Promise.resolve(tx.hash.toString());
             } else {
                 this.debug(0, `Transaction ${tx.hash.toString()} failed phase-2 validation. Slashing collateral.`);
-                this.slashCollateral(tx);
-                return Promise.reject(tx.hash.toString())
+                await this.slashCollateral(tx);
+                return Promise.reject(`Transaction ${tx.hash.toString()} failed phase-2 validation.`);
             }
         } else {
-            return Promise.reject(tx.hash.toString())
-        }    
+            return Promise.reject(`Transaction ${tx.hash.toString()} failed phase-1 validation.`);
+        }
     }
 
     /**
@@ -934,9 +932,16 @@ export class Emulator implements ITxRunnerProvider, IGetGenesisInfos, IGetProtoc
      * Slash collateral for a failed transaction
      * @param tx The transaction that failed phase-2 validation
      */
-    private slashCollateral(tx: Tx): void {
+    private async slashCollateral(tx: Tx): Promise<void> {
+        this.debug(1, `Executing slashCollateral for transaction ${tx.hash.toString()}`);
+    
         const collateralInputs = tx.body.collateralInputs || [];
         const collateralPercentage = this.protocolParameters.collateralPercentage || 150; // Default to 150% if not defined
+
+        if (collateralInputs.length === 0) {
+            this.debug(0, `No collateral inputs found for transaction ${tx.hash.toString()}`);
+            return Promise.resolve(); // Return a resolved promise if no collateral inputs are found
+        }
 
         for (const input of collateralInputs) {
             const utxoRef = forceTxOutRefStr(input);
@@ -949,36 +954,50 @@ export class Emulator implements ITxRunnerProvider, IGetGenesisInfos, IGetProtoc
 
             const fee = tx.body.fee || BigInt(0);
             const collateralToSlash = (fee * BigInt(collateralPercentage)) / BigInt(100);
-
-            if (utxo.resolved.value.lovelaces > collateralToSlash) {
-                // Return the remaining collateral to the change address
+            
+            this.debug(1, `Slashing collateral from UTxO ${utxoRef}: ${collateralToSlash} lovelaces`);
+            
+            if (utxo.resolved.value.lovelaces >= collateralToSlash) {
+                // Calculate remaining collateral
                 const remainingLovelaces = utxo.resolved.value.lovelaces - collateralToSlash;
                 const changeAddress = utxo.resolved.address;
 
-                const remainingUtxo = new UTxO({
-                    resolved: {
-                        address: changeAddress,
-                        value: new Value([
-                            { policy: "", assets: [{ name: "", quantity: remainingLovelaces }] }, // ADA entry
-                            ...utxo.resolved.value.map, // Ensure other tokens (native tokens, NFTs) are included
-                        ]),
-                        datum: utxo.resolved.datum,
-                        refScript: utxo.resolved.refScript,
-                    },
-                    utxoRef: new TxOutRef({
-                        id: tx.hash.toString(),
-                        index: 0, // Assuming index 0 for the new UTxO
-                    }),
-                });
+                if (remainingLovelaces > BigInt(0)) {
+                    // Return the remaining collateral to the change address
 
-                this.addUtxoToLedger(remainingUtxo);
-                this.debug(1, `Returned remaining collateral to change address: ${changeAddress.toString()}`);
+                    // Create a Value object for remaining ADA
+                    const remainingAdaValue = Value.lovelaces(remainingLovelaces);
+
+                    // Combine ADA with other tokens using the static Value.add method
+                    const remainingValue = Value.add(remainingAdaValue, utxo.resolved.value);
+
+                    const remainingUtxo = new UTxO({
+                        resolved: {
+                            address: changeAddress,
+                            value: remainingValue,
+                            datum: utxo.resolved.datum,
+                            refScript: utxo.resolved.refScript,
+                        },
+                        utxoRef: new TxOutRef({
+                            id: tx.hash.toString(),
+                            index: 0, // Assuming index 0 for the new UTxO
+                        }),
+                    });
+
+                    this.addUtxoToLedger(remainingUtxo);
+                    this.debug(1, `Returned remaining collateral to change address: ${changeAddress.toString()}`);
+                } else {
+                    this.debug(1, `No remaining collateral to return.`);
+                }    
+            } else {
+                this.debug(1, `Collateral is insufficient to cover the slashing amount.`);
             }
 
             // Remove the slashed collateral UTxO from the ledger
             this.removeUtxoFromLedger(utxoRef);
             this.debug(1, `Slashed ${collateralToSlash} lovelaces from collateral UTxO ${utxoRef}`);
         }
+        return Promise.resolve(); // Ensure the method returns a resolved promise
     }
 }
 
